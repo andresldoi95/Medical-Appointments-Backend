@@ -10,8 +10,14 @@ Route::prefix('v1')->middleware('auth:api')->group(function () {
     Route::resource('user', UserApiController::class, [
         'only' => ['index']
     ]);
-    Route::resource('patients', PatientApiController::class, [
-        'except' => ['create', 'edit']
-    ]);
+
     Route::get('teams/{userId}', [TeamApiController::class, 'index']);
+    Route::group(['mmiddleware' => [
+        'team.verify'
+    ]], function () {
+        Route::resource('patients', PatientApiController::class, [
+            'except' => ['create', 'edit']
+        ]);
+    });
+
 });

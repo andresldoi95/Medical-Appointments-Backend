@@ -16,22 +16,20 @@ class PatientApiController extends Controller
             'per_page' => 'required|integer',
             'sort_by' => 'required|string',
             'sort_order' => 'required|in:asc,desc',
-            'team_id' => 'required|integer|exists:teams,id',
             'search' => 'nullable'
         ]);
         $search = $request->input('search');
         return Patient::withTrashed()
-            ->where('team_id',  $request->input('team_id'))
+            ->where('team_id',  $request->header('Team-Id'))
             ->orderBy($request->input('sort_by'), $request->input('sort_order'))
             ->where(function ($query) use($search) {
                 if ($search)
-                    $query->where('last_name', 'like', "%$search%");
+                    $query->where('last_name', 'like', "%$search%")->orWhere('first_name', 'like', "%$search%");
             })
             ->paginate($request->input('per_page', ['*'], 'page', $request->input('page')));
     }
     private function getValidationRules(Request $request, $id = null) {
         return [
-            'team_id' => 'required|integer|exists:teams,id',
             'identification' => [
                 'required', 'max:20', Rule::unique('patients')
                     ->where('team_id', $request->input('team_id'))
@@ -48,7 +46,7 @@ class PatientApiController extends Controller
     }
     private function createOrUpdatePatient(Request $request) {
         return Patient::updateOrCreate([
-            'team_id' => $request->input('team_id'),
+            'team_id' => $request->header('Team-Id'),
             'identification' => $request->input('identification')
         ], [
             'first_name' => $request->input('first_name'),
@@ -75,5 +73,8 @@ class PatientApiController extends Controller
         else
             $patient->delete();
         return $patient;
+    }
+    public function show($id) {
+        return Patient::findOrFail($id);
     }
 }
